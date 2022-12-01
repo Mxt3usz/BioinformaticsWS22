@@ -158,11 +158,3 @@ def test_exercise_4f(seq1, seq2, scoring):
         assert expected_alignment == actual_alignment
 
 
-if __name__ == "__main__":
-    seq1 = "AT"
-    seq2 = "CTAT"
-
-    scoring = {"match": -1, "mismatch": 0, "gap_introduction": 1}
-
-    matrix = nw_forward_correct(seq1, seq2, scoring)
-    given_matrix_csv_maker(seq1, seq2, matrix, "correct_matrix.csv")

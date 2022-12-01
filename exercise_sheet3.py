@@ -78,23 +78,22 @@ def previous_cells(
     the cell coordinates (row, column). The function should output the list
     of all possible previous cells.
     """
+    if cell == (0,0):
+        return []
+    if cell == ((0,1) or (1,0)):
+        return [(0,0)]
     cells = []
     i = cell[0]
     j = cell[1]
-    if cell == (0,0) or cell == (0,1) or cell == (1,0): # final state reached
-        cells += [cell]
-        return cells
     left_gap =  nw_matrix[i-1][j] + scoring["gap_introduction"]
     right_gap = nw_matrix[i][j-1] + scoring["gap_introduction"]
     mis_or_match = nw_matrix[i-1][j-1] + scoring["match"] if seq1[i-1] == seq2[j-1] else nw_matrix[i-1][j-1] + scoring["mismatch"]
     if left_gap == nw_matrix[i][j]:
-        cells += previous_cells(seq1,seq2,scoring,nw_matrix,(i-1,j))
+        cells += [(i-1,j)]
     if right_gap == nw_matrix[i][j]:
-        cells += previous_cells(seq1,seq2,scoring,nw_matrix,(i,j-1))
+        cells += [(i,j-1)]
     if mis_or_match == nw_matrix[i][j]:
-        cells += previous_cells(seq1,seq2,scoring,nw_matrix,(i-1,j-1))
-    
-    cells += [cell]
+        cells += [(i-1,j-1)]
     return cells
     
 def build_all_traceback_paths(
@@ -104,7 +103,20 @@ def build_all_traceback_paths(
     Exercise 4 e
     Implement the function which builds all possible traceback paths.
     """
-    return previous_cells(seq1,seq2,scoring,nw_matrix,(len(seq1),len(seq2)))
+    
+    global pa
+    pa = [(len(seq1),len(seq2))]
+    def recursive_traceback(cell,trace_back_paths = []):
+        global pa
+        previous_cell = previous_cells(seq1,seq2,scoring,nw_matrix,cell)
+        for cells in previous_cell:
+            pa += [cells]
+            recursive_traceback(cells)
+        trace_back_paths += [pa] if pa != [] and pa[-1] == (0,0) else []
+        pa = pa[:-1]
+        return trace_back_paths
+    return recursive_traceback((len(seq1),len(seq2)))
+
     
 def build_alignment(seq1, seq2, traceback_path) -> Tuple[str, str]:
     """
@@ -112,15 +124,28 @@ def build_alignment(seq1, seq2, traceback_path) -> Tuple[str, str]:
     Implement the function build_alignment() which takes two sequences and
     outputs the alignment.
     """
-    c = len(traceback_path)-1
-    allignment = ""
-    while c != 0:
-        if traceback_path[c][0] - traceback_path[c-1][0] == 1 and traceback_path[c][1] - traceback_path[c-1][1] == 1:
-            allignment += seq2[traceback_path[c][1]-1]
+    allignement1 = ""
+    allignement2 = ""
+    c = 0
+    letters_left1 = len(seq1)-1
+    letters_left2 = len(seq2)-1
+    while c != len(traceback_path)-1:
+        if traceback_path[c][0] - traceback_path[c+1][0] == 1 and traceback_path[c][1] - traceback_path[c+1][1] == 0:
+             allignement1 += seq1[letters_left1] if letters_left1 >= 0 else ""
+             allignement2 += "-"
+             letters_left1 -= 1
+        elif traceback_path[c][0] - traceback_path[c+1][0] == 0 and traceback_path[c][1] - traceback_path[c+1][1] == 1:
+            allignement1 += "-"
+            allignement2 += seq2[letters_left2] if letters_left2 >= 0 else ""
+            letters_left2 -= 1
         else:
-            allignment += "-"
-        c -= 1
-    return allignment[::-1]
+            allignement1 += seq1[letters_left1] if letters_left1 >= 0 else ""
+            allignement2 += seq2[letters_left2] if letters_left2 >= 0 else ""
+            letters_left1 -= 1
+            letters_left2 -= 1
+        c += 1
+    return (allignement1[::-1],allignement2[::-1])
+
 
 if __name__ == "__main__":
     """
@@ -128,10 +153,10 @@ if __name__ == "__main__":
     import this file in excel or some similar program, where you can fill in
     the forward values yourself.    
     """
-    seq1 = "TACGCGC"
-    seq2 = "TCCGA"
+    seq1 = "TCCGA"
+    seq2 = "TACGCGC"
     scoring = {"match": -1, "mismatch": 0, "gap_introduction": 1}
 
     print(string_matrix(nw_forward(seq1,seq2,scoring),seq1,seq2))
     print(build_all_traceback_paths(seq1,seq2,scoring,nw_forward(seq1,seq2,scoring)))
-    print(build_alignment(seq1,seq2,build_all_traceback_paths(seq1,seq2,scoring,nw_forward(seq1,seq2,scoring))))
+    print(build_alignment(seq1,seq2,build_all_traceback_paths(seq1,seq2,scoring,nw_forward(seq1,seq2,scoring))[0]))
